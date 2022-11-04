@@ -7,7 +7,9 @@ const app = express();
 
 async function getHtml() {
   return await axios.get("https://lostark.game.onstove.com/Profile/Character/마늘대검").then((response) => {
-    let skillList = [];
+    let skillList = []; //스킬JSON
+    let jeweList = [];
+
     let jewelSlotList = [];
     let jeweEffectlList = [];
     const $ = cheerio.load(response.data);
@@ -107,19 +109,27 @@ async function getHtml() {
       };
     });
 
+    var q=0;
     for(var x=0; x<jewelSlotList.length; x++) {
       for(var y=0; y<jeweEffectlList.length; y++) {
         if(jewelSlotList[x].id == jeweEffectlList[y].id) {
+          jeweList[q] = {
+            id : jeweEffectlList[y].id,
+            skillName : jeweEffectlList[y].skillName,
+            jewelEffect : jeweEffectlList[y].effectName.replace(jeweEffectlList[y].skillName + " ", ""),
+            jewelLev : jewelSlotList[x].jewelLevel
+          }
           console.log(jeweEffectlList[y].id);
           console.log(jeweEffectlList[y].skillName);
-          console.log(jeweEffectlList[y].effectName);
+          console.log(jeweEffectlList[y].effectName.replace(jeweEffectlList[y].skillName + " ", ""));
           console.log(jewelSlotList[x].jewelLevel);
+          q++;
           break;
         }
       }
     }
 
-    return skillList;
+    return jeweList;
   })
 }
 
