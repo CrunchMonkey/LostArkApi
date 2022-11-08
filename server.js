@@ -3,19 +3,14 @@ const axios = require("axios");
 const cheerio = require("cheerio");
 const { response } = require("express");
 const app = express();
+var url = require("url");
 
 
-async function getHtml() {
-  return await axios.get("https://lostark.game.onstove.com/Profile/Character/마늘대검").then((response) => {
+async function getSkill(id) {
+  return await axios.get("https://lostark.game.onstove.com/Profile/Character/" + id).then((response) => {
     let skillList = []; //스킬JSON
-    let jeweList = [];
-
-    let jewelSlotList = [];
-    let jeweEffectlList = [];
     const $ = cheerio.load(response.data);
     const $skillList = $("div.profile-skill__list").children('div.profile-skill__item'); //전투스킬 목록
-    const $jewelSlotList = $("div.jewel-effect__wrap").children('div.jewel__wrap').children('span.jewel_btn'); //보석 목록(보석칸)
-    const $jeweEffectlList = $("div.jewel-effect__list").children("div.box_wrapper").children("ul").children("li"); //보석 효과 목록
 
     $skillList.each(function(i, elem) {//json으로
       var skillInfoJson = JSON.parse($(this).children("a.button").attr("data-skill")); //스킬정보 String to json
@@ -88,11 +83,25 @@ async function getHtml() {
         twoTierTripord : twoTierTripord, //2트포
         twoTierTripordLev : twoTierTripordLev, //2트포레벨
         threeTierTripord : threeTierTripord, //3트포
-        threeTierTripord : threeTierTripordLev, //3트포레벨
+        threeTierTripordLev : threeTierTripordLev, //3트포레벨
         runeName: runeName, //장착 룬 이름
         runeGrade : runeGrade, //장착 룬 등급
       };
     });
+
+    return skillList;
+  })
+}
+
+async function getJewel(id) {
+  return await axios.get("https://lostark.game.onstove.com/Profile/Character/" + id).then((response) => {
+    let jewelList = [];
+
+    let jewelSlotList = [];
+    let jewelEffectlList = [];
+    const $ = cheerio.load(response.data);
+    const $jewelSlotList = $("div.jewel-effect__wrap").children('div.jewel__wrap').children('span.jewel_btn'); //보석 목록(보석칸)
+    const $jewelEffectlList = $("div.jewel-effect__list").children("div.box_wrapper").children("ul").children("li"); //보석 효과 목록
 
     $jewelSlotList.each(function(i, elem) {//json으로
       jewelSlotList[i] = {
@@ -101,8 +110,8 @@ async function getHtml() {
       };
     });
 
-    $jeweEffectlList.each(function(i, elem) {//json으로
-      jeweEffectlList[i] = {
+    $jewelEffectlList.each(function(i, elem) {//json으로
+      jewelEffectlList[i] = {
         id : $(this).children("span.slot").attr("data-gemkey"), //보석스킬ID
         skillName : $(this).children("strong.skill_tit").text(), //보석적용 스킬이름
         effectName : $(this).children("p.skill_detail").text()
@@ -113,16 +122,12 @@ async function getHtml() {
     for(var x=0; x<jewelSlotList.length; x++) {
       for(var y=0; y<jeweEffectlList.length; y++) {
         if(jewelSlotList[x].id == jeweEffectlList[y].id) {
-          jeweList[q] = {
+          jewelList[q] = {
             id : jeweEffectlList[y].id,
             skillName : jeweEffectlList[y].skillName,
             jewelEffect : jeweEffectlList[y].effectName.replace(jeweEffectlList[y].skillName + " ", ""),
             jewelLev : jewelSlotList[x].jewelLevel
           }
-          console.log(jeweEffectlList[y].id);
-          console.log(jeweEffectlList[y].skillName);
-          console.log(jeweEffectlList[y].effectName.replace(jeweEffectlList[y].skillName + " ", ""));
-          console.log(jewelSlotList[x].jewelLevel);
           q++;
           break;
         }
@@ -135,8 +140,21 @@ async function getHtml() {
 
 app.set("view engine", "ejs"); 
 
-app.get("/", (req, res) => {
-  getHtml().then(skillList => {
+app.get("/skill", (req, res) => {
+  var _url = req.url;
+  var data = url.parse(_url, true).query;
+  console.log(data.id);
+  getSkill(data.id).then(skillList => {
+    res.send(skillList);
+    //res.render("main", skill);
+  })
+})
+
+app.get("/jewel", (req, res) => {
+  var _url = req.url;
+  var data = url.parse(_url, true).query;
+  console.log(data.id);
+  getJewel(data.id).then(skillList => {
     res.send(skillList);
     //res.render("main", skill);
   })
